@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using BehaviorDesigner.Runtime;
+using BehaviorDesigner.Runtime.Tasks.Unity.UnityGameObject;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
@@ -10,11 +11,9 @@ using UnityEngine.Serialization;
 public class AIController : MonoBehaviour
 {
     [SerializeField] private BehaviorTree bTree;
+    private int score = 0;
 
-    private float sightDistance = 5f;
-    private Collider _coneCollider;
-    
-    
+    [SerializeField ]private HUD _hudScript;
 
     private void Start()
     {
@@ -32,10 +31,11 @@ public class AIController : MonoBehaviour
         SharedNavMeshAgent var = new SharedNavMeshAgent();
         var.Value = GetComponent<NavMeshAgent>();
         bTree.SetVariable("SelfNavAgent", var);
+        
+        var baseObj = new SharedGameObject();
+        baseObj.Value = GameObject.FindWithTag("Base");
+        bTree.SetVariable("BaseGameObject", baseObj);
     }
-
-    private int hitCount = 0;
-
     private bool CheckForLOS(GameObject obj)
     {
         return Physics.Linecast(transform.position, obj.transform.position);
@@ -50,20 +50,31 @@ public class AIController : MonoBehaviour
         bTree.SetVariable("PickupGameObject", null);
     }
 
+    // If not currently pursuing Pickup & Sees one then set bb
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Pickup"))
+        var currentlySeePickup = (SharedBool)bTree.GetVariable("SeePickup");
+        if (!currentlySeePickup.Value)
         {
-            if (CheckForLOS(other.gameObject))
+            if (other.CompareTag("Pickup"))
             {
-                var obj = new SharedGameObject();
-                obj.Value = other.gameObject;
+                if (CheckForLOS(other.gameObject))
+                {
+                    var obj = new SharedGameObject();
+                    obj.Value = other.gameObject;
 
-                SharedBool var = new SharedBool();
-                var.Value = true;
-                bTree.SetVariable("SeePickup", var);
-                bTree.SetVariable("PickupGameObject", obj);
+                    SharedBool var = new SharedBool();
+                    var.Value = true;
+                    bTree.SetVariable("SeePickup", var);
+                    bTree.SetVariable("PickupGameObject", obj);
+                }
             }
         }
+    }
+
+    public void IncrementScore(int value)
+    {
+        score+=value;
+        _hudScript.UpdateScore(score);
     }
 }
