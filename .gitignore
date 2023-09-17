@@ -73,3 +73,6 @@ crashlytics-build.properties
 
 # Ignore External
 /[Aa]ssets/[Ee]xternal
+
+# Ignore JetBrains .Idea Folder
+/.[Ii]dea
